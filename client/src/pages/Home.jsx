@@ -238,7 +238,7 @@ export default function Home() {
       </div>
       {isTyping && (
         <div className="absolute z-10 bottom-24 left-[50vw]">
-          Med Assists is typing.......
+          EmoAssist is typing.......
         </div>
       )}
     </div>
