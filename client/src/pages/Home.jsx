@@ -11,9 +11,12 @@ import BarGraph from "../components/BarGraph";
 export default function Home() {
   const [name, setName] = useState("");
   const [accessToken, setAccessToken] = useState("");
+  const [nameState, setNameState] = useState([]);
   const [sentiments, setSentiments] = useState([]);
   const [probabilities, setProbabilities] = useState([]);
-  const [analyze, setAnalyze] = useState([]);
+  const [urlState, setUrlState] = useState([]);
+  const [sentimentsImg, setSentimetnsImg] = useState([]);
+  const [probabilitiesImg, setProbabilitiesImg] = useState([]);
   const [isAnalyze, setIsAnalyze] = useState(false);
   const [posts, setPosts] = useState([]);
   const [isLogIn, setIsLogIn] = useState(false);
@@ -26,6 +29,14 @@ export default function Home() {
     "Personality disorder",
     "Stress",
     "Suicidal",
+  ];
+  const imgLabels = [
+    "Anger",
+    "Disgust",
+    "Fear",
+    "Happiness",
+    "Sadness",
+    "Surprise",
   ];
   const handleSocialLoginSuccess = (res) => {
     const token = res.data.accessToken;
@@ -65,37 +76,46 @@ export default function Home() {
   };
   const handlePost = async () => {
     let name = [];
+    let urls = [];
     posts.map((a) => {
       if (a.message && a.message != "") {
         name.push(a.message);
       }
     });
+    posts.map((a) => {
+      if (a.full_picture && a.full_picture != "") {
+        urls.push(a.full_picture);
+      }
+    });
+    setNameState(name);
+    setUrlState(urls);
     try {
       setIsTyping(true);
       const res = await axios.post("http://127.0.0.1:5000/data", { name });
+      const resImg = await axios.post("http://127.0.0.1:5000/image", {
+        name: urls,
+      });
       const senti = res.data[0];
       const probF = res.data[1];
+      const sentiImg = resImg.data[0];
+      const probFImg = resImg.data[1];
       const sum = probF.reduce((acc, current) => {
+        return acc.map((val, idx) => val + current[idx]);
+      });
+      const sumImg = probFImg.reduce((acc, current) => {
         return acc.map((val, idx) => val + current[idx]);
       });
       const probs = sum.map(
         (val) => parseFloat((val / res.data[1].length).toFixed(2)) * 100
       );
+      const probsImg = sumImg.map((val) =>
+        parseFloat((val / resImg.data[1].length).toFixed(2))
+      );
       setSentiments(senti);
       setProbabilities(probs);
-      let arr = [];
-      for (let i = 0; i < name.length; i++) {
-        let temp = {
-          text: "Text:" + name[i] + "  Sentiment:" + senti[i],
-        };
-        arr.push(temp);
-      }
-      setAnalyze(arr);
+      setSentimetnsImg(sentiImg);
+      setProbabilitiesImg(probsImg);
       setIsAnalyze(true);
-      console.log(arr);
-      console.log(name);
-      console.log(senti);
-      console.log(probs);
     } catch (err) {
       console.log(err);
     } finally {
@@ -156,7 +176,7 @@ export default function Home() {
                   detected sentiments for each—helping you better understand
                   your emotional tone online.
                 </div>
-                <table className="border-collapse bg-[#f0f4f9] border border-gray-300 w-[90%]">
+                <table className="border-collapse bg-[#f0f4f9] border border-gray-300 w-[90%] my-3">
                   <thead>
                     <tr>
                       <th className="text-left pl-5 w-3/4">Text</th>
@@ -164,11 +184,11 @@ export default function Home() {
                     </tr>
                   </thead>
                   <tbody>
-                    {posts.map((a, idx) => {
+                    {nameState.map((a, idx) => {
                       return (
                         <tr key={idx}>
                           <th className="text-left text-sm font-normal pl-5 py-3">
-                            {a.message}
+                            {a}
                           </th>
                           <th className="text-left text-sm font-normal pl-5 py-3">
                             {sentiments[idx]}
@@ -178,8 +198,38 @@ export default function Home() {
                     })}
                   </tbody>
                 </table>
-
-                <BarGraph labels={labels} probabilities={probabilities} />
+                <table className="border-collapse bg-[#f0f4f9] border border-gray-300 w-[90%] my-3">
+                  <thead>
+                    <tr>
+                      <th className="text-left pl-5 w-3/4">Images</th>
+                      <th className="text-left pl-5 w-1/4">Sentiment</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {urlState.map((a, idx) => {
+                      return (
+                        <tr key={idx}>
+                          <th className="text-left text-sm font-normal pl-5 py-3">
+                            <img src={a} className="h-32 w-32" alt="1" />
+                          </th>
+                          <th className="text-left text-sm font-normal pl-5 py-3">
+                            {sentimentsImg[idx]}
+                          </th>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <BarGraph
+                  labels={labels}
+                  probabilities={probabilities}
+                  context={"Text"}
+                />
+                <BarGraph
+                  labels={imgLabels}
+                  probabilities={probabilitiesImg}
+                  context={"Image"}
+                />
               </>
             )}
           </div>
@@ -194,5 +244,3 @@ export default function Home() {
     </div>
   );
 }
-
-//http://127.0.0.1:5000

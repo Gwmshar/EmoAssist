@@ -7,7 +7,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-export default function BarGraph({ labels, probabilities }) {
+export default function BarGraph({ labels, probabilities, context }) {
   const data = labels.map((category, index) => {
     return {
       name: category,
@@ -16,7 +16,9 @@ export default function BarGraph({ labels, probabilities }) {
   });
   return (
     <div className="w-full flex flex-col items-center p-6">
-      <h2 className="text-lg font-bold mb-4">Bar Graph based on Sentiments</h2>
+      <h2 className="text-lg font-bold mb-4">
+        Bar Graph based on {context} Sentiments
+      </h2>
       <div className="w-full max-w-4xl h-96">
         <ResponsiveContainer>
           <BarChart

@@ -4,7 +4,14 @@ from flask_cors import CORS
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from transformers import DistilBertForSequenceClassification
+import cv2
+import tensorflow as tf
+from tensorflow.keras.models import load_model
+from io import BytesIO
+import os
+import requests
 import torch
+import urllib.parse
 import numpy as np
 import warnings
 warnings.filterwarnings('ignore')
@@ -44,10 +51,72 @@ def predict_batch(model, tokenizer, label_encoder, statements):
     
     return result
 
+def sanitize_filename(url):
+    filename = os.path.basename(urllib.parse.urlparse(url).path)
+    filename = filename.replace('?', '_').replace('&', '_').replace('=', '_')
+    if not filename.endswith('.jpg') and not filename.endswith('.jpeg'):
+        filename = filename.split('.')[0] + '.jpg'
+    return filename
+
 @app.route('/test', methods=['get'])
 def test():
     return jsonify({"message": "Data received", "received_data": "yo"})
 
+PHOTO_FOLDER = './photos'
+os.makedirs(PHOTO_FOLDER, exist_ok=True)
+
+@app.route('/image',methods=['POST'])
+def imageFun():
+    data=request.get_json()
+    image_urls=data.get('name')
+    imgModel = load_model("C:\\Users\\Gwmshar\\Downloads\\model1.h5")
+    saved_paths=[]
+    emotionList=[]
+    emotionPercentage=[]
+    for i, image_url in enumerate(image_urls):
+        try:
+            print(f"Processing URL: {image_url}")
+            response = requests.get(image_url)
+            if response.status_code == 200:
+                filename = sanitize_filename(image_url)
+                file_path = os.path.join(PHOTO_FOLDER, filename)
+                nparr = np.frombuffer(response.content, np.uint8)
+                img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+                if img is not None:
+                    cv2.imwrite(file_path, img)
+                    saved_paths.append(file_path)
+                else:
+                    saved_paths.append(f"Failed to decode image: {image_url}")
+                    print(f"Failed to decode image: {image_url}")
+            else:
+                saved_paths.append(f"Failed to download (HTTP {response.status_code}): {image_url}")
+                print(f"Failed to download: HTTP {response.status_code}")
+            image_path = saved_paths[i]
+            img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+            img = cv2.resize(img, (128, 128))
+            img = img / 255.0
+            img = np.stack([img] * 3, axis=-1)
+            img = np.expand_dims(img, axis=0)
+            predictions = imgModel.predict(img)
+            predicted_class = np.argmax(predictions, axis=-1)
+            emotion_labels = ['Anger', 'Disgust', 'Fear', 'Happiness', 'Sadness', 'Surprise']
+            predicted_emotion = emotion_labels[predicted_class[0]]
+            print(f"The predicted emotion is: {predicted_emotion}")
+            softmax_predictions = tf.nn.softmax(predictions)
+            percentages = (softmax_predictions.numpy() * 100)
+            percentages_rounded = np.round(percentages, 2)
+            print(percentages_rounded)
+            percentages_list = [[round(value, 2) for value in row] for row in percentages_rounded.tolist()]
+            print(percentages_list)
+            print("Predicted class percentages after applying softmax:")
+            emotionList.append(predicted_emotion)
+            emotionPercentage.append(percentages_list[0])
+        except Exception as e:
+            saved_paths.append(f"Error with {image_url}: {str(e)}")
+            print(f"Error with {image_url}: {str(e)}")
+    res_data=[emotionList,emotionPercentage]
+    return jsonify(res_data)
 @app.route('/data',methods=['POST'])
 def testPost():
     data=request.get_json()
