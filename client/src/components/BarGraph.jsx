@@ -17,7 +17,7 @@ export default function BarGraph({ labels, probabilities, context }) {
   return (
     <div className="w-full flex flex-col items-center p-6">
       <h2 className="text-lg font-bold mb-4">
-        Bar Graph based on {context} Sentiments
+        Bar Graph based on {context} Sentiment
       </h2>
       <div className="w-full max-w-4xl h-96">
         <ResponsiveContainer>

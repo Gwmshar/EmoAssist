@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
-export default function InputBox({ isLogIn, handlePost }) {
-  const [text, setText] = useState("");
+export default function InputBox({ text, setText, handlePost }) {
   const textareaRef = useRef(null);
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -16,7 +15,6 @@ export default function InputBox({ isLogIn, handlePost }) {
       <div className="w-full">
         <div className="relative border bg-[#f0f4f9] w-full rounded-[2.0rem] flex justify-center items-center p-4 space-x-2">
           <textarea
-            disabled={true}
             ref={textareaRef}
             value={text}
             onChange={handleInputChange}
@@ -28,17 +26,10 @@ export default function InputBox({ isLogIn, handlePost }) {
               overflowY: "auto",
             }}
           />
-          <button
-            disabled={!isLogIn}
-            onClick={() => handlePost()}
-            className={`px-4 py-2 rounded-md ${
-              isLogIn
-                ? " text-black cursor-pointer"
-                : " text-gray-500 cursor-not-allowed"
-            }`}
-          >
-            Analyze
-          </button>
+          <form action="" onSubmit={() => handlePost(e)}>
+            <button className="w-16">Send</button>
+          </form>
+          <button className="w-16">UP</button>
         </div>
       </div>
     </div>
